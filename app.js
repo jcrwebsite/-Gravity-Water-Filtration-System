@@ -13,6 +13,9 @@ let labels = [];
 let flowRate = 0;
 let solarPower = 0;
 let uvIntensity = 0;
+let isMobile = false;
+let touchStartX = 0;
+let touchStartY = 0;
 
 // Component information database
 const componentData = {
@@ -69,6 +72,10 @@ const componentData = {
 
 // Initialize the scene
 function init() {
+    // Detect mobile device
+    isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
+               || window.innerWidth <= 768;
+
     // Scene setup
     scene = new THREE.Scene();
     
@@ -116,6 +123,19 @@ function init() {
     controls.minDistance = 2;
     controls.maxDistance = 10;
     controls.maxPolarAngle = Math.PI / 2;
+    
+    // Enable touch controls for mobile
+    if (isMobile) {
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.08;
+        controls.rotateSpeed = 0.5;
+        controls.zoomSpeed = 0.8;
+        controls.panSpeed = 0.5;
+        controls.touches = {
+            ONE: THREE.TOUCH.ROTATE,
+            TWO: THREE.TOUCH.DOLLY_PAN
+        };
+    }
 
     // Lighting
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
@@ -1093,6 +1113,91 @@ function updateStats() {
     document.getElementById('efficiency').textContent = efficiency + '%';
 }
 
+// Toggle mobile menu
+let mobileMenuOpen = false;
+let mobileCurrentPanel = 'info'; // 'info', 'controls', 'stats'
+
+function toggleMobileMenu() {
+    if (!isMobile) return;
+
+    const infoPanel = document.getElementById('info-panel');
+    const controlsPanel = document.getElementById('controls');
+    const statsPanel = document.getElementById('stats-panel');
+    const toggle = document.getElementById('mobile-toggle');
+
+    if (!mobileMenuOpen) {
+        // Open menu - show info panel first
+        infoPanel.classList.add('mobile-visible');
+        controlsPanel.classList.remove('mobile-visible');
+        statsPanel.classList.remove('mobile-visible');
+        toggle.textContent = '✕';
+        mobileMenuOpen = true;
+        mobileCurrentPanel = 'info';
+    } else {
+        // Cycle through panels
+        if (mobileCurrentPanel === 'info') {
+            infoPanel.classList.remove('mobile-visible');
+            controlsPanel.classList.add('mobile-visible');
+            statsPanel.classList.remove('mobile-visible');
+            toggle.textContent = '📊';
+            mobileCurrentPanel = 'controls';
+        } else if (mobileCurrentPanel === 'controls') {
+            infoPanel.classList.remove('mobile-visible');
+            controlsPanel.classList.remove('mobile-visible');
+            statsPanel.classList.add('mobile-visible');
+            toggle.textContent = '🎮';
+            mobileCurrentPanel = 'stats';
+        } else {
+            // Close all
+            infoPanel.classList.remove('mobile-visible');
+            controlsPanel.classList.remove('mobile-visible');
+            statsPanel.classList.remove('mobile-visible');
+            toggle.textContent = '☰';
+            mobileMenuOpen = false;
+        }
+    }
+}
+
+// Handle touch gestures
+function setupTouchGestures() {
+    if (!isMobile) return;
+
+    const canvas = renderer.domElement;
+
+    canvas.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 1) {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+        }
+    }, { passive: true });
+
+    canvas.addEventListener('touchmove', (e) => {
+        if (e.touches.length === 1) {
+            // Single finger - rotate
+            const deltaX = e.touches[0].clientX - touchStartX;
+            const deltaY = e.touches[0].clientY - touchStartY;
+            
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+        }
+    }, { passive: true });
+
+    // Double tap to reset view
+    let lastTap = 0;
+    canvas.addEventListener('touchend', (e) => {
+        const currentTime = new Date().getTime();
+        const tapLength = currentTime - lastTap;
+        
+        if (tapLength < 300 && tapLength > 0) {
+            // Double tap detected
+            resetView();
+            e.preventDefault();
+        }
+        
+        lastTap = currentTime;
+    });
+}
+
 // Toggle auto rotation
 function toggleRotation() {
     isRotating = !isRotating;
@@ -1147,6 +1252,12 @@ function setupEventListeners() {
         if (isExploded) toggleExplode();
     });
 
+    // Mobile menu toggle
+    const mobileToggle = document.getElementById('mobile-toggle');
+    if (mobileToggle) {
+        mobileToggle.addEventListener('click', toggleMobileMenu);
+    }
+
     // Component focus buttons
     document.getElementById('btn-feed').addEventListener('click', () => focusOnComponent('feedContainer'));
     document.getElementById('btn-filter1').addEventListener('click', () => focusOnComponent('bananaFiber'));
@@ -1181,6 +1292,11 @@ function setupEventListeners() {
 
     // Window resize
     window.addEventListener('resize', onWindowResize, false);
+    
+    // Orientation change for mobile
+    window.addEventListener('orientationchange', () => {
+        setTimeout(onWindowResize, 100);
+    });
 
     // Click on 3D objects
     const raycaster = new THREE.Raycaster();
@@ -1220,6 +1336,10 @@ function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
+    
+    // Re-detect mobile on resize
+    isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
+               || window.innerWidth <= 768;
 }
 
 // Animation loop
@@ -1314,10 +1434,22 @@ window.addEventListener('DOMContentLoaded', () => {
     try {
         init();
         
+        // Setup touch gestures for mobile
+        setupTouchGestures();
+        
         // Initialize stats
         solarPower = 12;
         uvIntensity = 100;
         updateStats();
+        
+        // Show mobile instructions
+        if (isMobile) {
+            console.log('📱 Mobile Mode Active');
+            console.log('• Tap ☰ button to toggle menu');
+            console.log('• One finger to rotate');
+            console.log('• Two fingers to zoom');
+            console.log('• Double tap to reset view');
+        }
         
         console.log('✓ 3D Water Filtration System loaded successfully');
         console.log('✓ All components initialized');

@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <title>3D Water Filtration System</title>
     <style>
         * {
@@ -56,6 +58,28 @@
             max-width: 380px;
             z-index: 100;
             border: 1px solid rgba(255, 255, 255, 0.5);
+            transition: transform 0.3s ease;
+        }
+
+        #info-panel.mobile-collapsed {
+            transform: translateX(-100%);
+        }
+
+        #mobile-toggle {
+            display: none;
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 24px;
+            z-index: 200;
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.6);
+            cursor: pointer;
         }
 
         #info-panel h1 {
@@ -457,9 +481,222 @@
         .flow-indicator {
             animation: flowGlow 1.5s ease-in-out infinite;
         }
+
+        /* Mobile Responsive Styles */
+        @media (max-width: 768px) {
+            body {
+                touch-action: pan-y;
+            }
+
+            #info-panel {
+                top: 10px;
+                left: 10px;
+                right: 10px;
+                max-width: none;
+                padding: 15px;
+                max-height: 80vh;
+                overflow-y: auto;
+            }
+
+            #info-panel h1 {
+                font-size: 18px;
+            }
+
+            #info-panel p {
+                font-size: 11px;
+            }
+
+            button {
+                padding: 8px 16px;
+                font-size: 12px;
+                margin-right: 5px;
+                margin-bottom: 8px;
+            }
+
+            #controls {
+                top: auto;
+                bottom: 10px;
+                right: 10px;
+                left: 10px;
+                padding: 12px;
+                max-height: 40vh;
+                overflow-y: auto;
+            }
+
+            #controls h3 {
+                font-size: 13px;
+            }
+
+            .slider-container label {
+                font-size: 11px;
+            }
+
+            #stats-panel {
+                bottom: 10px;
+                right: 10px;
+                left: 10px;
+                padding: 12px;
+                min-width: auto;
+            }
+
+            #stats-panel h3 {
+                font-size: 14px;
+            }
+
+            .stat-item {
+                padding: 6px;
+                margin-bottom: 6px;
+            }
+
+            .stat-label {
+                font-size: 11px;
+            }
+
+            .stat-value {
+                font-size: 12px;
+            }
+
+            #component-info {
+                bottom: 10px;
+                left: 10px;
+                right: 10px;
+                padding: 15px;
+                max-height: 50vh;
+            }
+
+            #component-info h2 {
+                font-size: 16px;
+            }
+
+            #component-info p {
+                font-size: 12px;
+            }
+
+            .component-card {
+                width: 100%;
+                margin-bottom: 15px;
+                padding: 15px;
+            }
+
+            .component-card h3 {
+                font-size: 16px;
+            }
+
+            .component-card p {
+                font-size: 12px;
+            }
+
+            #exploded-info {
+                padding: 15px;
+                max-width: 100%;
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            #close-exploded {
+                top: 10px;
+                right: 10px;
+                width: 45px;
+                height: 45px;
+                font-size: 20px;
+            }
+
+            .label-3d {
+                font-size: 10px;
+                padding: 6px 10px;
+            }
+
+            #mobile-toggle {
+                display: block;
+            }
+
+            /* Hide panels by default on mobile */
+            #info-panel,
+            #controls,
+            #stats-panel {
+                display: none;
+            }
+
+            #info-panel.mobile-visible,
+            #controls.mobile-visible,
+            #stats-panel.mobile-visible {
+                display: block;
+            }
+
+            /* Stack panels on mobile */
+            .control-group {
+                margin-bottom: 10px;
+            }
+
+            .control-group label {
+                font-size: 12px;
+                margin-bottom: 6px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            #info-panel h1 {
+                font-size: 16px;
+            }
+
+            button {
+                padding: 6px 12px;
+                font-size: 11px;
+                margin-right: 4px;
+                margin-bottom: 6px;
+            }
+
+            .component-card {
+                padding: 12px;
+            }
+
+            .component-card .icon {
+                font-size: 28px;
+            }
+
+            #mobile-toggle {
+                width: 45px;
+                height: 45px;
+                font-size: 20px;
+            }
+        }
+
+        /* Landscape mode adjustments */
+        @media (max-width: 768px) and (orientation: landscape) {
+            #info-panel {
+                max-height: 70vh;
+            }
+
+            #controls {
+                max-height: 50vh;
+            }
+
+            #component-info {
+                max-height: 60vh;
+            }
+        }
+
+        /* Touch-friendly enhancements */
+        @media (hover: none) and (pointer: coarse) {
+            button {
+                min-height: 44px;
+                min-width: 44px;
+            }
+
+            .component-card {
+                cursor: pointer;
+                -webkit-tap-highlight-color: rgba(102, 126, 234, 0.2);
+            }
+
+            input[type="range"] {
+                height: 40px;
+            }
+        }
     </style>
 </head>
 <body>
+    <button id="mobile-toggle">☰</button>
+    
     <div id="canvas-container"></div>
     
     <div id="info-panel">
