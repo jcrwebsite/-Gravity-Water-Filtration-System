@@ -371,6 +371,92 @@
         #exploded-info::-webkit-scrollbar-thumb:hover {
             background: linear-gradient(135deg, #764ba2 0%, #c026d3 100%);
         }
+
+        #stats-panel {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.98) 100%);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), 0 0 1px rgba(255, 255, 255, 0.5) inset;
+            z-index: 100;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            min-width: 220px;
+        }
+
+        #stats-panel h3 {
+            font-size: 16px;
+            margin-bottom: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 700;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 8px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .stat-item:hover {
+            background: rgba(102, 126, 234, 0.2);
+            transform: translateX(-3px);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            font-weight: 600;
+        }
+
+        .stat-value {
+            font-size: 13px;
+            color: #667eea;
+            font-weight: 700;
+        }
+
+        .label-3d {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #333;
+            pointer-events: none;
+            white-space: nowrap;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            transition: all 0.3s;
+            z-index: 10;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.05); opacity: 1; }
+        }
+
+        .pulsing {
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes flowGlow {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.8; }
+        }
+
+        .flow-indicator {
+            animation: flowGlow 1.5s ease-in-out infinite;
+        }
     </style>
 </head>
 <body>
@@ -399,6 +485,37 @@
         <div class="control-group">
             <label>Flow Simulation:</label>
             <button id="btn-flow">Start Water Flow</button>
+        </div>
+
+        <div class="control-group">
+            <label>Advanced Features:</label>
+            <button id="btn-labels">Toggle Labels</button>
+            <button id="btn-daynight">Day/Night Mode</button>
+            <button id="btn-xray">X-Ray Mode</button>
+        </div>
+    </div>
+
+    <div id="stats-panel">
+        <h3>System Stats</h3>
+        <div class="stat-item">
+            <span class="stat-label">💧 Flow Rate:</span>
+            <span class="stat-value" id="flow-rate">0 L/min</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">☀️ Solar Power:</span>
+            <span class="stat-value" id="solar-power">0 W</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">💡 UV Intensity:</span>
+            <span class="stat-value" id="uv-intensity">0%</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">🧪 Filtration:</span>
+            <span class="stat-value" id="filtration">Idle</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">⚡ Efficiency:</span>
+            <span class="stat-value" id="efficiency">0%</span>
         </div>
     </div>
 

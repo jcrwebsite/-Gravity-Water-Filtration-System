@@ -6,6 +6,13 @@ let isRotating = false;
 let flowParticles = [];
 let waterFlowActive = false;
 let animationId;
+let labelsVisible = false;
+let isDayMode = true;
+let isXRayMode = false;
+let labels = [];
+let flowRate = 0;
+let solarPower = 0;
+let uvIntensity = 0;
 
 // Component information database
 const componentData = {
@@ -149,6 +156,9 @@ function init() {
 
     // Create the filtration system
     createFiltrationSystem();
+
+    // Create 3D labels
+    create3DLabels();
 
     // Event listeners
     setupEventListeners();
@@ -370,6 +380,26 @@ function createFilterTube(filterColor, particleColor) {
         particle.castShadow = true;
         tubeGroup.add(particle);
     }
+    
+    // Add sparkle particles (for visual effect when filtering)
+    for (let i = 0; i < 20; i++) {
+        const sparkleGeometry = new THREE.SphereGeometry(0.008, 8, 8);
+        const sparkleMaterial = new THREE.MeshBasicMaterial({
+            color: 0xffffff,
+            transparent: true,
+            opacity: 0.6
+        });
+        const sparkle = new THREE.Mesh(sparkleGeometry, sparkleMaterial);
+        sparkle.position.set(
+            (Math.random() - 0.5) * 0.24,
+            (Math.random() - 0.5) * 0.48,
+            (Math.random() - 0.5) * 0.24
+        );
+        sparkle.userData.isSparkle = true;
+        sparkle.userData.initialY = sparkle.position.y;
+        sparkle.userData.speed = 0.5 + Math.random() * 0.5;
+        tubeGroup.add(sparkle);
+    }
 
     // Glossy blue base with better material
     const baseGeometry = new THREE.CylinderGeometry(0.18, 0.18, 0.08, 32);
@@ -568,6 +598,12 @@ function createPipes(systemGroup) {
         pipeMaterial
     );
     systemGroup.add(pipe1);
+    
+    // Add valve to pipe 1
+    const valve1 = createValve();
+    valve1.position.set(-0.9, 1.4, 0);
+    valve1.rotation.z = Math.PI / 4;
+    systemGroup.add(valve1);
 
     // Pipe from banana fiber to UV chamber
     const pipe2 = createCurvedPipe(
@@ -576,6 +612,12 @@ function createPipes(systemGroup) {
         pipeMaterial
     );
     systemGroup.add(pipe2);
+    
+    // Add valve to pipe 2
+    const valve2 = createValve();
+    valve2.position.set(0.1, 0.7, 0);
+    valve2.rotation.z = -Math.PI / 6;
+    systemGroup.add(valve2);
 
     // Pipe from UV chamber to carbon filter
     const pipe3 = createCurvedPipe(
@@ -584,6 +626,12 @@ function createPipes(systemGroup) {
         pipeMaterial
     );
     systemGroup.add(pipe3);
+    
+    // Add valve to pipe 3
+    const valve3 = createValve();
+    valve3.position.set(0.9, 0.5, 0);
+    valve3.rotation.z = Math.PI / 5;
+    systemGroup.add(valve3);
 
     // Pipe from carbon filter to faucet
     const pipe4 = createCurvedPipe(
@@ -592,6 +640,36 @@ function createPipes(systemGroup) {
         pipeMaterial
     );
     systemGroup.add(pipe4);
+}
+
+// Create a valve for the pipe
+function createValve() {
+    const valveGroup = new THREE.Group();
+    
+    const valveBodyGeometry = new THREE.CylinderGeometry(0.04, 0.04, 0.08, 16);
+    const valveMaterial = new THREE.MeshStandardMaterial({
+        color: 0x555555,
+        metalness: 0.9,
+        roughness: 0.2
+    });
+    const valveBody = new THREE.Mesh(valveBodyGeometry, valveMaterial);
+    valveBody.rotation.z = Math.PI / 2;
+    valveBody.castShadow = true;
+    valveGroup.add(valveBody);
+    
+    // Valve handle
+    const handleGeometry = new THREE.BoxGeometry(0.06, 0.01, 0.02);
+    const handleMaterial = new THREE.MeshStandardMaterial({
+        color: 0xef4444,
+        metalness: 0.6,
+        roughness: 0.4
+    });
+    const handle = new THREE.Mesh(handleGeometry, handleMaterial);
+    handle.position.y = 0.03;
+    handle.castShadow = true;
+    valveGroup.add(handle);
+    
+    return valveGroup;
 }
 
 // Create curved pipe between two points
@@ -780,12 +858,16 @@ function toggleWaterFlow() {
     if (waterFlowActive) {
         button.classList.add('active');
         button.textContent = 'Stop Water Flow';
+        flowRate = 2.5;
         startWaterFlow();
     } else {
         button.classList.remove('active');
         button.textContent = 'Start Water Flow';
+        flowRate = 0;
         stopWaterFlow();
     }
+    
+    updateStats();
 }
 
 function startWaterFlow() {
@@ -859,6 +941,158 @@ function createWaterParticles() {
     }
 }
 
+// Create 3D labels for components
+function create3DLabels() {
+    const labelData = [
+        { name: 'Feed Container', position: { x: -1.5, y: 2.5, z: 0 }, component: 'feedContainer' },
+        { name: 'Solar Panel', position: { x: -1.5, y: 0.8, z: -0.8 }, component: 'solarPanel' },
+        { name: 'Banana Fiber', position: { x: -0.3, y: 1.5, z: 0 }, component: 'bananaFiber' },
+        { name: 'UV Chamber', position: { x: 0.5, y: 1.3, z: 0 }, component: 'uvChamber' },
+        { name: 'Carbon Filter', position: { x: 1.3, y: 1.1, z: 0 }, component: 'carbonFilter' },
+        { name: 'Output Faucet', position: { x: 2, y: 0.7, z: 0 }, component: 'faucet' }
+    ];
+
+    labelData.forEach(data => {
+        const label = document.createElement('div');
+        label.className = 'label-3d';
+        label.textContent = data.name;
+        label.style.display = 'none';
+        label.dataset.component = data.component;
+        label.dataset.x = data.position.x;
+        label.dataset.y = data.position.y;
+        label.dataset.z = data.position.z;
+        document.body.appendChild(label);
+        labels.push(label);
+    });
+}
+
+// Update 3D label positions
+function update3DLabels() {
+    if (!labelsVisible) return;
+
+    labels.forEach(label => {
+        const x = parseFloat(label.dataset.x);
+        const y = parseFloat(label.dataset.y);
+        const z = parseFloat(label.dataset.z);
+
+        const vector = new THREE.Vector3(x, y, z);
+        vector.project(camera);
+
+        const widthHalf = window.innerWidth / 2;
+        const heightHalf = window.innerHeight / 2;
+
+        label.style.left = (vector.x * widthHalf + widthHalf) + 'px';
+        label.style.top = (-vector.y * heightHalf + heightHalf) + 'px';
+    });
+}
+
+// Toggle 3D labels
+function toggleLabels() {
+    labelsVisible = !labelsVisible;
+    const button = document.getElementById('btn-labels');
+
+    labels.forEach(label => {
+        label.style.display = labelsVisible ? 'block' : 'none';
+    });
+
+    if (labelsVisible) {
+        button.classList.add('active');
+        button.textContent = 'Hide Labels';
+    } else {
+        button.classList.remove('active');
+        button.textContent = 'Toggle Labels';
+    }
+}
+
+// Toggle day/night mode
+function toggleDayNight() {
+    isDayMode = !isDayMode;
+    const button = document.getElementById('btn-daynight');
+
+    if (isDayMode) {
+        button.classList.remove('active');
+        button.textContent = 'Day/Night Mode';
+        // Day mode - bright
+        scene.children.forEach(child => {
+            if (child.isDirectionalLight) {
+                child.intensity = 1.0;
+            }
+            if (child.isAmbientLight) {
+                child.intensity = 0.7;
+            }
+        });
+        solarPower = 12;
+        uvIntensity = 100;
+    } else {
+        button.classList.add('active');
+        button.textContent = '🌙 Night Mode';
+        // Night mode - dim
+        scene.children.forEach(child => {
+            if (child.isDirectionalLight) {
+                child.intensity = 0.3;
+            }
+            if (child.isAmbientLight) {
+                child.intensity = 0.3;
+            }
+        });
+        solarPower = 0;
+        uvIntensity = 0;
+    }
+
+    updateStats();
+}
+
+// Toggle X-Ray mode
+function toggleXRay() {
+    isXRayMode = !isXRayMode;
+    const button = document.getElementById('btn-xray');
+
+    if (isXRayMode) {
+        button.classList.add('active');
+        button.textContent = '🔬 X-Ray Active';
+        
+        // Make outer containers more transparent
+        scene.traverse((object) => {
+            if (object.isMesh && object.material.transparent) {
+                object.material.opacity = Math.min(object.material.opacity, 0.2);
+            }
+        });
+    } else {
+        button.classList.remove('active');
+        button.textContent = 'X-Ray Mode';
+        
+        // Restore original transparency
+        components.feedContainer.traverse((object) => {
+            if (object.isMesh && object.material.transparent && object.geometry.type === 'CylinderGeometry') {
+                if (object.geometry.parameters.radiusTop === 0.25) {
+                    object.material.opacity = 0.5;
+                }
+            }
+        });
+        
+        [components.bananaFiber, components.carbonFilter, components.uvChamber].forEach(component => {
+            component.traverse((object) => {
+                if (object.isMesh && object.material.transparent && object.geometry.type === 'CylinderGeometry') {
+                    if (object.geometry.parameters.radiusTop === 0.15) {
+                        object.material.opacity = 0.4;
+                    }
+                }
+            });
+        });
+    }
+}
+
+// Update stats display
+function updateStats() {
+    document.getElementById('flow-rate').textContent = flowRate.toFixed(1) + ' L/min';
+    document.getElementById('solar-power').textContent = solarPower.toFixed(1) + ' W';
+    document.getElementById('uv-intensity').textContent = uvIntensity.toFixed(0) + '%';
+    document.getElementById('filtration').textContent = waterFlowActive ? 'Active' : 'Idle';
+    
+    const efficiency = waterFlowActive && isDayMode ? 95 : (waterFlowActive ? 60 : 0);
+    document.getElementById('efficiency').textContent = efficiency + '%';
+}
+
 // Toggle auto rotation
 function toggleRotation() {
     isRotating = !isRotating;
@@ -919,6 +1153,11 @@ function setupEventListeners() {
     document.getElementById('btn-uv').addEventListener('click', () => focusOnComponent('uvChamber'));
     document.getElementById('btn-carbon').addEventListener('click', () => focusOnComponent('carbonFilter'));
     document.getElementById('btn-solar').addEventListener('click', () => focusOnComponent('solarPanel'));
+
+    // Advanced feature buttons
+    document.getElementById('btn-labels').addEventListener('click', toggleLabels);
+    document.getElementById('btn-daynight').addEventListener('click', toggleDayNight);
+    document.getElementById('btn-xray').addEventListener('click', toggleXRay);
 
     // Zoom slider
     const zoomSlider = document.getElementById('zoom-slider');
@@ -992,6 +1231,51 @@ function animate() {
         components.system.rotation.y += 0.005;
     }
 
+    // Animate solar panel tracking (subtle rotation)
+    if (components.solarPanel && isDayMode) {
+        const time = Date.now() * 0.0001;
+        components.solarPanel.rotation.y = Math.sin(time) * 0.1;
+    }
+
+    // Pulsing UV light
+    if (components.uvChamber && isDayMode) {
+        components.uvChamber.traverse((child) => {
+            if (child.isPointLight) {
+                const pulse = Math.sin(Date.now() * 0.003) * 0.3 + 1.2;
+                child.intensity = pulse;
+            }
+            if (child.material && child.material.emissive) {
+                const pulse = Math.sin(Date.now() * 0.003) * 0.3 + 0.9;
+                child.material.emissiveIntensity = pulse;
+            }
+        });
+    }
+
+    // Animate water level in feed container
+    if (components.feedContainer && waterFlowActive) {
+        components.feedContainer.traverse((child) => {
+            if (child.isMesh && child.material.color && child.material.color.getHex() === 0x87ceeb) {
+                const wave = Math.sin(Date.now() * 0.002) * 0.02;
+                child.position.y = -0.05 + wave;
+            }
+        });
+    }
+
+    // Animate sparkles in filters when water is flowing
+    if (waterFlowActive) {
+        [components.bananaFiber, components.carbonFilter].forEach(filter => {
+            if (filter) {
+                filter.traverse((child) => {
+                    if (child.userData.isSparkle) {
+                        const time = Date.now() * 0.001 * child.userData.speed;
+                        child.position.y = child.userData.initialY + Math.sin(time) * 0.05;
+                        child.material.opacity = 0.3 + Math.sin(time * 2) * 0.3;
+                    }
+                });
+            }
+        });
+    }
+
     // Update water particles
     if (waterFlowActive) {
         flowParticles.forEach(particle => {
@@ -999,6 +1283,23 @@ function animate() {
                 particle.userData.animate();
             }
         });
+    }
+
+    // Update 3D labels
+    if (labelsVisible) {
+        update3DLabels();
+    }
+
+    // Update stats periodically
+    if (Math.random() < 0.01) {
+        if (waterFlowActive) {
+            flowRate = 2.3 + Math.random() * 0.4;
+        }
+        if (isDayMode) {
+            solarPower = 11 + Math.random() * 2;
+            uvIntensity = 95 + Math.random() * 5;
+        }
+        updateStats();
     }
 
     // Update controls
@@ -1012,8 +1313,15 @@ function animate() {
 window.addEventListener('DOMContentLoaded', () => {
     try {
         init();
+        
+        // Initialize stats
+        solarPower = 12;
+        uvIntensity = 100;
+        updateStats();
+        
         console.log('✓ 3D Water Filtration System loaded successfully');
         console.log('✓ All components initialized');
+        console.log('✓ Advanced features enabled');
         console.log('✓ Controls ready');
         console.log('✓ No errors detected');
     } catch (error) {
